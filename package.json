@@ -14,7 +14,6 @@
     "jspdf": "^4.2.1",
     "pinia": "^2.1.7",
     "three": "^0.160.0",
-    "vite-plugin-wasm": "^3.3.0",
     "vue": "^3.3.11"
   },
   "devDependencies": {
