@@ -737,7 +737,12 @@ async function compute() {
   errorMessage.value = null
 
   try {
-    const doc = await runCompute(props.data, props.path)
+    // Convert Ceiling Height from meters (UI) to millimeters (GH file units)
+    const ghData = {
+      ...props.data,
+      'Ceiling Height': (props.data['Ceiling Height'] ?? 5) * 1000,
+    }
+    const doc = await runCompute(ghData, props.path)
 
     // Stale? A newer compute was queued → skip this result entirely.
     if (generation !== computeGeneration) return
@@ -814,6 +819,7 @@ async function compute() {
         // Measure actual world-space height for accurate cut-plane mapping
         const finalBox = new THREE.Box3().setFromObject(object)
         geoWorldHeight = finalBox.max.y - finalBox.min.y || 1
+        console.log(`[Geometry] height=${geoWorldHeight.toFixed(4)} width=${(finalBox.max.x - finalBox.min.x).toFixed(4)} depth=${(finalBox.max.z - finalBox.min.z).toFixed(4)}`)
 
         if (!hasLoaded) {
           applyMode()
