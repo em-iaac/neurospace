@@ -344,13 +344,20 @@ function setViewWalk() {
 }
 
 function setViewIsometric() {
-  if (!loadedObject) return
-  const box = new THREE.Box3().setFromObject(loadedObject)
-  const center = box.getCenter(new THREE.Vector3())
-  const size = box.getSize(new THREE.Vector3())
-  const maxDim = Math.max(size.x, size.y, size.z)
-  const distance = maxDim * 2
+  const FALLBACK = 300  // world units — fits the surroundings context
+  let center = new THREE.Vector3()
+  let maxDim = FALLBACK
 
+  if (loadedObject) {
+    const box = new THREE.Box3().setFromObject(loadedObject)
+    if (box.min.x !== Infinity) {
+      box.getCenter(center)
+      const size = box.getSize(new THREE.Vector3())
+      maxDim = Math.max(size.x, size.y, size.z) || FALLBACK
+    }
+  }
+
+  const distance = maxDim * 2
   // True isometric: camera along (-1,1,-1) from center
   orthoCamera.position.set(center.x - distance, center.y + distance, center.z - distance)
   orthoCamera.up.set(0, 1, 0)
@@ -362,13 +369,20 @@ function setViewIsometric() {
 }
 
 function setViewTop() {
-  if (!loadedObject) return
-  const box = new THREE.Box3().setFromObject(loadedObject)
-  const center = box.getCenter(new THREE.Vector3())
-  const size = box.getSize(new THREE.Vector3())
-  const maxDim = Math.max(size.x, size.z)
-  const distance = maxDim * 3
+  const FALLBACK = 300
+  let center = new THREE.Vector3()
+  let maxDim = FALLBACK
 
+  if (loadedObject) {
+    const box = new THREE.Box3().setFromObject(loadedObject)
+    if (box.min.x !== Infinity) {
+      box.getCenter(center)
+      const size = box.getSize(new THREE.Vector3())
+      maxDim = Math.max(size.x, size.z) || FALLBACK
+    }
+  }
+
+  const distance = maxDim * 3
   orthoCamera.position.set(center.x, center.y + distance, center.z)
   orthoCamera.up.set(0, 0, -1)
   orthoCamera.lookAt(center)
@@ -480,9 +494,9 @@ function applyMode() {
     orbitControls.enabled = true
     activeCamera = orthoCamera
     if (props.mode === 'isometric') {
-      if (loadedObject) setViewIsometric()
+      setViewIsometric()
     } else {
-      if (loadedObject) setViewTop()
+      setViewTop()
     }
   }
 }
@@ -805,16 +819,18 @@ async function compute() {
         object.rotation.x = -Math.PI / 2
         object.updateMatrixWorld(true)
 
-        // Sit the geometry on y = 0
+        // Sit the geometry on y = 0 — guard against empty bounding box (no meshes)
         const box = new THREE.Box3().setFromObject(object)
-        object.position.y -= box.min.y
+        if (box.min.y !== Infinity) {
+          object.position.y -= box.min.y
+        }
 
         loadedObject = object
         scene.add(object)
 
         // Measure actual world-space height for accurate cut-plane mapping
         const finalBox = new THREE.Box3().setFromObject(object)
-        geoWorldHeight = finalBox.max.y - finalBox.min.y || 1
+        geoWorldHeight = (finalBox.min.y !== Infinity ? finalBox.max.y - finalBox.min.y : 0) || 1
         console.log(`[Geometry] height=${geoWorldHeight.toFixed(4)} width=${(finalBox.max.x - finalBox.min.x).toFixed(4)} depth=${(finalBox.max.z - finalBox.min.z).toFixed(4)}`)
 
         if (!hasLoaded) {

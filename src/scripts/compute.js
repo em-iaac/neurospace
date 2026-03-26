@@ -80,9 +80,12 @@ function createDoc(res) {
         if (
           dataType.includes("Geometry") ||
           dataType.includes("Brep") ||
-          dataType.includes("Mesh")
+          dataType.includes("Mesh") ||
+          dataType.includes("Extrusion") ||
+          dataType.includes("Surface")
         ) {
           try {
+            console.log(`[Compute] geometry type='${dataType}' in param '${paramName}'`)
             const data = JSON.parse(d.data)
             const rhinoObject = rhino.CommonObject.decode(data)
             if (!rhinoObject) {
@@ -94,16 +97,24 @@ function createDoc(res) {
             // The Three.js Rhino3dmLoader worker uses face.getMesh() which returns null
             // for unmeshed faces, producing no visible geometry. Convert to Mesh first.
             let added = false
-            if (dataType.includes('Brep') || dataType.includes('Extrusion')) {
+            const isBrep = dataType.includes('Brep') || dataType.includes('Surface')
+            const isExtrusion = dataType.includes('Extrusion')
+            if (isBrep || isExtrusion) {
               try {
                 const mp = new rhino.MeshingParameters(0.5)
-                const meshes = rhino.Mesh.createFromBrep(rhinoObject, mp)
+                // Extrusion must be converted to Brep before meshing
+                let brepObj = rhinoObject
+                if (isExtrusion && typeof rhinoObject.toBrep === 'function') {
+                  brepObj = rhinoObject.toBrep(false)
+                }
+                const meshes = rhino.Mesh.createFromBrep(brepObj, mp)
                 if (meshes && meshes.length > 0) {
                   for (const m of meshes) {
                     doc.objects().add(m, null)
                     geometryCount++
                   }
                   added = true
+                  console.log(`[Compute] Converted ${isExtrusion ? 'Extrusion' : 'Brep'}→Mesh (${meshes.length} mesh(es)) in '${paramName}'`)
                 }
               } catch (meshErr) {
                 console.warn(`[Compute] Brep→Mesh failed in '${paramName}', adding raw:`, meshErr)
