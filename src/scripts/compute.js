@@ -63,6 +63,15 @@ async function compute(definition, definitionInputs) {
 
   const duration = (performance.now() - startTime) / 1000
   console.log(`[Compute] GH evaluated in ${duration.toFixed(3)}s`)
+  console.log('[Compute] inputs sent:', Object.fromEntries(trees.map(t => [t.ParamName, t.InnerTree])))
+  console.log('[Compute] raw response values:', res.values?.map(v => ({
+    param: v.ParamName,
+    paths: Object.entries(v.InnerTree).map(([path, items]) => ({
+      path,
+      count: items.length,
+      types: items.map(i => i.type)
+    }))
+  })))
   return res
 }
 

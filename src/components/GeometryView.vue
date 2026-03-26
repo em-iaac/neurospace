@@ -751,11 +751,7 @@ async function compute() {
   errorMessage.value = null
 
   try {
-    // Ceiling Height slider is in meters; GH file expects millimeters
-    const ghData = {
-      ...props.data,
-      'Ceiling Height': (props.data['Ceiling Height'] ?? 5) * 1000,
-    }
+    const ghData = { ...props.data }
     const doc = await runCompute(ghData, props.path)
 
     // Stale? A newer compute was queued → skip this result entirely.
