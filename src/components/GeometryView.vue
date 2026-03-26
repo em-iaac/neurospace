@@ -737,11 +737,7 @@ async function compute() {
   errorMessage.value = null
 
   try {
-    // Convert Ceiling Height from meters (UI) to GH file units (×10000 derived from measured output)
-    const ghData = {
-      ...props.data,
-      'Ceiling Height': (props.data['Ceiling Height'] ?? 5) * 10000,
-    }
+    const ghData = { ...props.data }
     const doc = await runCompute(ghData, props.path)
 
     // Stale? A newer compute was queued → skip this result entirely.
