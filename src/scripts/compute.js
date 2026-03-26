@@ -89,8 +89,31 @@ function createDoc(res) {
               console.warn(`[Compute] Null geometry skipped in output '${paramName}'`)
               continue
             }
-            doc.objects().add(rhinoObject, null)
-            geometryCount++
+
+            // Breps and Extrusions from Compute lack pre-computed render meshes.
+            // The Three.js Rhino3dmLoader worker uses face.getMesh() which returns null
+            // for unmeshed faces, producing no visible geometry. Convert to Mesh first.
+            let added = false
+            if (dataType.includes('Brep') || dataType.includes('Extrusion')) {
+              try {
+                const mp = new rhino.MeshingParameters(0.5)
+                const meshes = rhino.Mesh.createFromBrep(rhinoObject, mp)
+                if (meshes && meshes.length > 0) {
+                  for (const m of meshes) {
+                    doc.objects().add(m, null)
+                    geometryCount++
+                  }
+                  added = true
+                }
+              } catch (meshErr) {
+                console.warn(`[Compute] Brep→Mesh failed in '${paramName}', adding raw:`, meshErr)
+              }
+            }
+
+            if (!added) {
+              doc.objects().add(rhinoObject, null)
+              geometryCount++
+            }
           } catch (e) {
             console.error(`[Compute] Failed to decode geometry in '${paramName}':`, e)
           }
