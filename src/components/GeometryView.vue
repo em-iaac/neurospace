@@ -138,7 +138,7 @@ let geoWorldHeight = 1 // actual Y extent of the loaded geometry in world units
 
 // Dynamic cut plane max based on ceiling height
 const cutPlaneMax = computed(() => {
-  const h = props.data?.['Ceiling Height'] ?? 15
+  const h = props.data?.['Height'] ?? 15
   return h + 1
 })
 
@@ -522,7 +522,7 @@ function applyCutPlane() {
     return
   }
   // Map the slider (in design-meters) to actual world-space Y
-  const ceilingH = props.data?.['Ceiling Height'] ?? 15
+  const ceilingH = props.data?.['Height'] ?? 15
   const worldY = (cutPlaneHeight.value / ceilingH) * geoWorldHeight
   cutPlane.constant = worldY
   if (!loadedObject) return
@@ -972,7 +972,7 @@ watch(() => props.color, () => { updateMaterialColor() })
 watch(() => props.materialConfig, () => { applyMaterialConfig() }, { deep: true })
 
 // Clamp cut plane height when ceiling height changes
-watch(() => props.data?.['Ceiling Height'], () => {
+watch(() => props.data?.['Height'], () => {
   if (cutPlaneHeight.value > cutPlaneMax.value) {
     cutPlaneHeight.value = cutPlaneMax.value
   }

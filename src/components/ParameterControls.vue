@@ -239,7 +239,7 @@ const viewOptions = [
 
 // Map each GH parameter key to its dimension color
 const PARAM_COLORS = {
-  'Ceiling Height':          '#3182BD',
+  'Height':                  '#3182BD',
   'Wall Count':              '#E6550D',
   'Wall Curvature':          '#E6550D',
   'Opening Count':           '#756BB1',
