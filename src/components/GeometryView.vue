@@ -935,14 +935,18 @@ onMounted(async () => {
   await loadRhino()
   await nextTick()
   isReady.value = true
+  // Explicitly trigger the first compute with default parameters.
+  // Relying solely on the watcher can miss this on deployed builds
+  // due to Vue reactivity batching during the async mount.
+  compute()
 })
 
 // ── Watchers ─────────────────────────────────────────────────────────────────
 
 watch(
-  [isReady, () => props.data],
-  ([ready]) => {
-    if (!ready) return
+  () => props.data,
+  () => {
+    if (!isReady.value) return
     compute()
   },
   { deep: true }
