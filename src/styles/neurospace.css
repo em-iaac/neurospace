@@ -55,7 +55,7 @@
   background: var(--ns-white);
   color: var(--ns-text);
   padding: 5rem 4rem;
-  height: calc(100vh - 68px);
+  height: 100vh;
   min-height: 600px;
   display: flex;
   flex-direction: column;
@@ -251,7 +251,7 @@
 .ns-tool {
   display: flex;
   width: 100%;
-  height: calc(100vh - 68px);
+  height: 100vh;
   min-height: 600px;
   background: var(--ns-off-white);
 }
