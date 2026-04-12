@@ -138,7 +138,7 @@ let geoWorldHeight = 1 // actual Y extent of the loaded geometry in world units
 
 // Dynamic cut plane max based on ceiling height
 const cutPlaneMax = computed(() => {
-  const h = props.data?.['Ceiling Height'] ?? 15
+  const h = props.data?.['Height'] ?? 15
   return h + 1
 })
 
@@ -344,13 +344,20 @@ function setViewWalk() {
 }
 
 function setViewIsometric() {
-  if (!loadedObject) return
-  const box = new THREE.Box3().setFromObject(loadedObject)
-  const center = box.getCenter(new THREE.Vector3())
-  const size = box.getSize(new THREE.Vector3())
-  const maxDim = Math.max(size.x, size.y, size.z)
-  const distance = maxDim * 2
+  const FALLBACK = 300  // world units — fits the surroundings context
+  let center = new THREE.Vector3()
+  let maxDim = FALLBACK
 
+  if (loadedObject) {
+    const box = new THREE.Box3().setFromObject(loadedObject)
+    if (box.min.x !== Infinity) {
+      box.getCenter(center)
+      const size = box.getSize(new THREE.Vector3())
+      maxDim = Math.max(size.x, size.y, size.z) || FALLBACK
+    }
+  }
+
+  const distance = maxDim * 2
   // True isometric: camera along (-1,1,-1) from center
   orthoCamera.position.set(center.x - distance, center.y + distance, center.z - distance)
   orthoCamera.up.set(0, 1, 0)
@@ -362,13 +369,20 @@ function setViewIsometric() {
 }
 
 function setViewTop() {
-  if (!loadedObject) return
-  const box = new THREE.Box3().setFromObject(loadedObject)
-  const center = box.getCenter(new THREE.Vector3())
-  const size = box.getSize(new THREE.Vector3())
-  const maxDim = Math.max(size.x, size.z)
-  const distance = maxDim * 3
+  const FALLBACK = 300
+  let center = new THREE.Vector3()
+  let maxDim = FALLBACK
 
+  if (loadedObject) {
+    const box = new THREE.Box3().setFromObject(loadedObject)
+    if (box.min.x !== Infinity) {
+      box.getCenter(center)
+      const size = box.getSize(new THREE.Vector3())
+      maxDim = Math.max(size.x, size.z) || FALLBACK
+    }
+  }
+
+  const distance = maxDim * 3
   orthoCamera.position.set(center.x, center.y + distance, center.z)
   orthoCamera.up.set(0, 0, -1)
   orthoCamera.lookAt(center)
@@ -480,9 +494,9 @@ function applyMode() {
     orbitControls.enabled = true
     activeCamera = orthoCamera
     if (props.mode === 'isometric') {
-      if (loadedObject) setViewIsometric()
+      setViewIsometric()
     } else {
-      if (loadedObject) setViewTop()
+      setViewTop()
     }
   }
 }
@@ -508,7 +522,7 @@ function applyCutPlane() {
     return
   }
   // Map the slider (in design-meters) to actual world-space Y
-  const ceilingH = props.data?.['Ceiling Height'] ?? 15
+  const ceilingH = props.data?.['Height'] ?? 15
   const worldY = (cutPlaneHeight.value / ceilingH) * geoWorldHeight
   cutPlane.constant = worldY
   if (!loadedObject) return
@@ -737,11 +751,7 @@ async function compute() {
   errorMessage.value = null
 
   try {
-    // Convert Ceiling Height from meters (UI) to GH file units (×10000 derived from measured output)
-    const ghData = {
-      ...props.data,
-      'Ceiling Height': (props.data['Ceiling Height'] ?? 5) * 10000,
-    }
+    const ghData = { ...props.data }
     const doc = await runCompute(ghData, props.path)
 
     // Stale? A newer compute was queued → skip this result entirely.
@@ -809,16 +819,18 @@ async function compute() {
         object.rotation.x = -Math.PI / 2
         object.updateMatrixWorld(true)
 
-        // Sit the geometry on y = 0
+        // Sit the geometry on y = 0 — guard against empty bounding box (no meshes)
         const box = new THREE.Box3().setFromObject(object)
-        object.position.y -= box.min.y
+        if (box.min.y !== Infinity) {
+          object.position.y -= box.min.y
+        }
 
         loadedObject = object
         scene.add(object)
 
         // Measure actual world-space height for accurate cut-plane mapping
         const finalBox = new THREE.Box3().setFromObject(object)
-        geoWorldHeight = finalBox.max.y - finalBox.min.y || 1
+        geoWorldHeight = (finalBox.min.y !== Infinity ? finalBox.max.y - finalBox.min.y : 0) || 1
         console.log(`[Geometry] height=${geoWorldHeight.toFixed(4)} width=${(finalBox.max.x - finalBox.min.x).toFixed(4)} depth=${(finalBox.max.z - finalBox.min.z).toFixed(4)}`)
 
         if (!hasLoaded) {
@@ -923,14 +935,18 @@ onMounted(async () => {
   await loadRhino()
   await nextTick()
   isReady.value = true
+  // Explicitly trigger the first compute with default parameters.
+  // Relying solely on the watcher can miss this on deployed builds
+  // due to Vue reactivity batching during the async mount.
+  compute()
 })
 
 // ── Watchers ─────────────────────────────────────────────────────────────────
 
 watch(
-  [isReady, () => props.data],
-  ([ready]) => {
-    if (!ready) return
+  () => props.data,
+  () => {
+    if (!isReady.value) return
     compute()
   },
   { deep: true }
@@ -956,7 +972,7 @@ watch(() => props.color, () => { updateMaterialColor() })
 watch(() => props.materialConfig, () => { applyMaterialConfig() }, { deep: true })
 
 // Clamp cut plane height when ceiling height changes
-watch(() => props.data?.['Ceiling Height'], () => {
+watch(() => props.data?.['Height'], () => {
   if (cutPlaneHeight.value > cutPlaneMax.value) {
     cutPlaneHeight.value = cutPlaneMax.value
   }

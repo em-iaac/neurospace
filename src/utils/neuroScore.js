@@ -10,7 +10,7 @@
 function _normParams(params) {
   const wallCount = params['Wall Count'] ?? 4
   const curvature = params['Wall Curvature'] ?? 0.8
-  const height    = params['Ceiling Height'] ?? 5
+  const height    = params['Height'] ?? 5
   const biophilic = params['Biophilic Organic Form'] ?? 0
   const openings  = params['Opening Count'] ?? 2
   const openSize  = params['Opening Size'] ?? 5
@@ -72,7 +72,7 @@ export function getScoreLabel(score) {
 export function getParameterContributions(params) {
   const d = _dimScores(_normParams(params))
   return {
-    'Ceiling Height': Math.round(d.heightScore    * 0.22 * 100),
+    'Ceiling Height': Math.round(d.heightScore    * 0.22 * 100),  // display name kept
     'Wall Quality':   Math.round(d.curveScore     * 0.25 * 100),
     'Natural Light':  Math.round(d.daylightScore  * 0.22 * 100),
     'Biophilic Form': Math.round(d.biophilicScore * 0.18 * 100),
@@ -95,7 +95,7 @@ export const contributionMaxima = {
 
 export const dimensionMeta = {
   'Ceiling Height': {
-    contributorKeys:   ['Ceiling Height'],
+    contributorKeys:   ['Height'],
     contributorLabels: ['Ceiling Height'],
     maxPts: 22,
     tagline: 'Cortisol regulation & cognitive mode',
@@ -106,7 +106,7 @@ export const dimensionMeta = {
       { range: '> 4m',   outcome: 'Abstract thinking mode — reduced stress',       risk: 'low' },
     ],
     hypothesis(params) {
-      const h = params['Ceiling Height'] ?? 5
+      const h = params['Height'] ?? 5
       if (h < 2.4) return `At ${h}m, ceiling height may trigger containment stress and elevated cortisol.`
       if (h < 4)   return `At ${h}m, ceiling height is below the threshold for abstract thinking mode.`
       return `At ${h}m, ceiling height supports abstract thinking and reduced cortisol markers.`
@@ -207,7 +207,7 @@ export const paramInfo = {
     text: 'Angular architectural forms activate threat-response areas of the brain. Curved walls are linked to reduced visual stress signals. Research demonstrates measurable differences in cortisol response between angular and curved environments.',
     source: 'Valentine, C. — Visual Stress in Architectural Façades',
   },
-  'Ceiling Height': {
+  'Height': {
     label: 'Ceiling Height',
     group: 'Spatial Form',
     min: 2, max: 15, step: 1, defaultValue: 5,
@@ -242,7 +242,7 @@ export const paramInfo = {
 // ─────────────────────────────────────────────────────────────────
 
 export const paramGroups = [
-  { name: 'Spatial Form',    keys: ['Ceiling Height'] },
+  { name: 'Spatial Form',    keys: ['Height'] },
   { name: 'Surface Quality', keys: ['Wall Curvature', 'Wall Count'] },
   { name: 'Natural Light',   keys: ['Opening Count', 'Opening Size'] },
   { name: 'Biophilic & Biomorphic', keys: ['Biophilic Organic Form'] },

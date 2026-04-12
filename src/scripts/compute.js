@@ -63,6 +63,15 @@ async function compute(definition, definitionInputs) {
 
   const duration = (performance.now() - startTime) / 1000
   console.log(`[Compute] GH evaluated in ${duration.toFixed(3)}s`)
+  console.log('[Compute] inputs sent:', Object.fromEntries(trees.map(t => [t.ParamName, t.InnerTree])))
+  console.log('[Compute] raw response values:', res.values?.map(v => ({
+    param: v.ParamName,
+    paths: Object.entries(v.InnerTree).map(([path, items]) => ({
+      path,
+      count: items.length,
+      types: items.map(i => i.type)
+    }))
+  })))
   return res
 }
 
@@ -80,17 +89,51 @@ function createDoc(res) {
         if (
           dataType.includes("Geometry") ||
           dataType.includes("Brep") ||
-          dataType.includes("Mesh")
+          dataType.includes("Mesh") ||
+          dataType.includes("Extrusion") ||
+          dataType.includes("Surface")
         ) {
           try {
+            console.log(`[Compute] geometry type='${dataType}' in param '${paramName}'`)
             const data = JSON.parse(d.data)
             const rhinoObject = rhino.CommonObject.decode(data)
             if (!rhinoObject) {
               console.warn(`[Compute] Null geometry skipped in output '${paramName}'`)
               continue
             }
-            doc.objects().add(rhinoObject, null)
-            geometryCount++
+
+            // Breps and Extrusions from Compute lack pre-computed render meshes.
+            // The Three.js Rhino3dmLoader worker uses face.getMesh() which returns null
+            // for unmeshed faces, producing no visible geometry. Convert to Mesh first.
+            let added = false
+            const isBrep = dataType.includes('Brep') || dataType.includes('Surface')
+            const isExtrusion = dataType.includes('Extrusion')
+            if (isBrep || isExtrusion) {
+              try {
+                const mp = new rhino.MeshingParameters(0.5)
+                // Extrusion must be converted to Brep before meshing
+                let brepObj = rhinoObject
+                if (isExtrusion && typeof rhinoObject.toBrep === 'function') {
+                  brepObj = rhinoObject.toBrep(false)
+                }
+                const meshes = rhino.Mesh.createFromBrep(brepObj, mp)
+                if (meshes && meshes.length > 0) {
+                  for (const m of meshes) {
+                    doc.objects().add(m, null)
+                    geometryCount++
+                  }
+                  added = true
+                  console.log(`[Compute] Converted ${isExtrusion ? 'Extrusion' : 'Brep'}→Mesh (${meshes.length} mesh(es)) in '${paramName}'`)
+                }
+              } catch (meshErr) {
+                console.warn(`[Compute] Brep→Mesh failed in '${paramName}', adding raw:`, meshErr)
+              }
+            }
+
+            if (!added) {
+              doc.objects().add(rhinoObject, null)
+              geometryCount++
+            }
           } catch (e) {
             console.error(`[Compute] Failed to decode geometry in '${paramName}':`, e)
           }

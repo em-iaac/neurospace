@@ -18,7 +18,7 @@ const path = def
 const sliderValues = reactive({
   'Wall Count':              4,
   'Wall Curvature':          0.8,
-  'Ceiling Height':          5,
+  'Height':                  5,
   'Biophilic Organic Form':  0,
   'Opening Count':           3,
   'Opening Size':            15,
