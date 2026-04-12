@@ -1,7 +1,12 @@
-# bimsc25-datamgmt-session04
+# NeuroSpace
 
+**Optimizing for the Mind** by Emilie El Chidiac
 
-This template should help get you started developing with Vue 3 in Vite.
+NeuroSpace is an interactive neuro-architecture tool that evaluates how spatial design parameters — ceiling height, curvature, daylight access, and biophilic elements — affect cognitive and emotional wellbeing through a live NeuroScore.
+
+## Live Deployment
+
+[https://hi-em.github.io/neurospace/](https://hi-em.github.io/neurospace/)
 
 ## Recommended IDE Setup
 
